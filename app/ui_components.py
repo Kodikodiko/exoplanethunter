@@ -5,9 +5,12 @@ def apply_theme(theme_mode):
     Injects CSS based on the selected theme.
     """
     css = ""
-    # Define variables based on mode
+    
+    # We use Streamlit's semantic CSS variables to override the theme dynamically.
+    # Base theme is Dark (from config.toml).
+    
     if theme_mode == "Dark":
-        # Matches config.toml defaults, but re-enforcing here ensures consistency if config fails
+        # Default behavior (matches config.toml), but we enforce it to be sure
         css = """
         <style>
         :root {
@@ -15,30 +18,28 @@ def apply_theme(theme_mode):
             --background-color: #0f172a;
             --secondary-background-color: #1e293b;
             --text-color: #e2e8f0;
+            --font: sans-serif;
+        }
+        /* Ensure inputs match */
+        .stTextInput input, .stNumberInput input, .stDateInput input, .stTimeInput input, .stSelectbox, .stMultiSelect {
+            color: #e2e8f0 !important;
+            background-color: #1e293b !important;
         }
         </style>
         """
+        
     elif theme_mode == "Light":
+        # Override variables for Light Mode
         css = """
         <style>
-        :root {
+        :root, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
             --primary-color: #0284c7;
             --background-color: #ffffff;
             --secondary-background-color: #f1f5f9;
             --text-color: #0f172a;
         }
-        </style>
-        """
-    elif theme_mode == "Nightsight (Red)":
-        # Global Red Filter
-        # We handle this via filter on the html/body
-        pass
-
-    # Apply Variables to Elements
-    # We apply these rules for Dark and Light. Red is special.
-    if theme_mode != "Nightsight (Red)":
-        css += """
-        <style>
+        
+        /* Force background and text application */
         [data-testid="stAppViewContainer"] {
             background-color: var(--background-color);
             color: var(--text-color);
@@ -46,31 +47,64 @@ def apply_theme(theme_mode):
         [data-testid="stSidebar"] {
             background-color: var(--secondary-background-color);
         }
-        [data-testid="stHeader"] {
-            background-color: transparent;
+        
+        /* Fix Input Widgets which might default to Dark styles */
+        .stTextInput input, .stNumberInput input, .stDateInput input, .stTimeInput input {
+            color: #0f172a !important;
+            background-color: #ffffff !important;
+            border-color: #cbd5e1 !important;
         }
-        /* Force text colors for Light mode overrides */
-        div, p, h1, h2, h3, h4, span, label {
-            color: var(--text-color) !important;
+        /* Selectbox/Multiselect text */
+        .stSelectbox div[data-baseweb="select"] > div {
+             background-color: #ffffff !important;
+             color: #0f172a !important;
         }
-        /* Sidebar text */
-        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
-            color: var(--text-color) !important;
+        span[data-baseweb="tag"] {
+            background-color: #e2e8f0 !important;
+            color: #0f172a !important;
+        }
+        
+        /* Dataframe fixes */
+        [data-testid="stDataFrame"] {
+            color: #0f172a !important;
         }
         </style>
         """
-    
-    # Red Mode Logic (Filter based)
-    if theme_mode == "Nightsight (Red)":
+        
+    elif theme_mode == "Nightsight (Red)":
+        # Red Mode: Force Black BG, Red Text, and Filter
         css = """
         <style>
-        html, body, [data-testid="stAppViewContainer"] {
+        :root, [data-testid="stAppViewContainer"], [data-testid="stSidebar"] {
+            --primary-color: #ff0000;
+            --background-color: #000000;
+            --secondary-background-color: #000000;
+            --text-color: #ff0000;
+        }
+        
+        [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stHeader"] {
             background-color: #000000 !important;
             color: #ff0000 !important;
         }
-        /* Filter everything to red */
-        [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stHeader"] {
-             filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) contrast(1.2) brightness(0.8);
+        
+        /* Apply Filter to turn everything red/monochrome */
+        /* We filter the main container to catch charts and maps */
+        [data-testid="stAppViewContainer"] {
+            filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) brightness(0.8);
+        }
+        [data-testid="stSidebar"] {
+            filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) brightness(0.8);
+            border-right: 1px solid #330000;
+        }
+        
+        /* Text Colors */
+        * {
+            color: #ff0000 !important;
+        }
+        
+        /* Chart lines override */
+        .js-plotly-plot .scatterlayer .trace .lines path {
+            stroke: #ff0000 !important;
         }
         </style>
         """

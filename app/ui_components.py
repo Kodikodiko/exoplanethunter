@@ -5,7 +5,9 @@ def apply_theme(theme_mode):
     Injects CSS based on the selected theme.
     """
     css = ""
+    # Define variables based on mode
     if theme_mode == "Dark":
+        # Matches config.toml defaults, but re-enforcing here ensures consistency if config fails
         css = """
         <style>
         :root {
@@ -13,10 +15,6 @@ def apply_theme(theme_mode):
             --background-color: #0f172a;
             --secondary-background-color: #1e293b;
             --text-color: #e2e8f0;
-        }
-        .stApp {
-            background-color: var(--background-color);
-            color: var(--text-color);
         }
         </style>
         """
@@ -29,25 +27,51 @@ def apply_theme(theme_mode):
             --secondary-background-color: #f1f5f9;
             --text-color: #0f172a;
         }
-        .stApp {
-            background-color: var(--background-color);
-            color: var(--text-color);
-        }
         </style>
         """
     elif theme_mode == "Nightsight (Red)":
         # Global Red Filter
+        # We handle this via filter on the html/body
+        pass
+
+    # Apply Variables to Elements
+    # We apply these rules for Dark and Light. Red is special.
+    if theme_mode != "Nightsight (Red)":
+        css += """
+        <style>
+        [data-testid="stAppViewContainer"] {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+        [data-testid="stSidebar"] {
+            background-color: var(--secondary-background-color);
+        }
+        [data-testid="stHeader"] {
+            background-color: transparent;
+        }
+        /* Force text colors for Light mode overrides */
+        div, p, h1, h2, h3, h4, span, label {
+            color: var(--text-color) !important;
+        }
+        /* Sidebar text */
+        [data-testid="stSidebar"] p, [data-testid="stSidebar"] span, [data-testid="stSidebar"] label {
+            color: var(--text-color) !important;
+        }
+        </style>
+        """
+    
+    # Red Mode Logic (Filter based)
+    if theme_mode == "Nightsight (Red)":
         css = """
         <style>
-        html, body, .stApp {
+        html, body, [data-testid="stAppViewContainer"] {
             background-color: #000000 !important;
             color: #ff0000 !important;
         }
         /* Filter everything to red */
-        .stApp {
+        [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stHeader"] {
              filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) contrast(1.2) brightness(0.8);
         }
-        /* Fix images/charts if needed, but the filter should handle it */
         </style>
         """
     

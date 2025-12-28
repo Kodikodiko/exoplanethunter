@@ -1,0 +1,13 @@
+streamlit
+sqlalchemy
+geoalchemy2
+psycopg2-binary
+astropy
+astroplan
+astroquery
+numpy
+pandas
+plotly
+python-dotenv
+requests
+scipy

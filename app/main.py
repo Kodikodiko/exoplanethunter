@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add project root to path to ensure absolute imports work on Streamlit Cloud
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 import pandas as pd
 import app.warnings_config # Import this first to silence warnings

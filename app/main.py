@@ -6,12 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
 import pandas as pd
-import warnings
-from astropy.utils.exceptions import AstropyWarning
-
-# Suppress specific Astropy warnings (Inlined from warnings_config.py)
-warnings.filterwarnings('ignore', category=AstropyWarning)
-warnings.filterwarnings('ignore', message='.*transforming other coordinates.*')
+import app.warnings_config # Import this first to silence warnings
 
 from datetime import datetime, timedelta, time
 from app.ui_components import apply_theme, render_sidebar

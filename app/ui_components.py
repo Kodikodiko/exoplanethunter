@@ -3,55 +3,59 @@ import streamlit as st
 def apply_theme(theme_mode):
     """
     Injects CSS based on the selected theme.
+    Base theme is set to DARK in .streamlit/config.toml.
     """
     css = ""
+    
     if theme_mode == "Dark":
-        css = """
-        <style>
-        :root {
-            --primary-color: #38bdf8;
-            --background-color: #0f172a;
-            --secondary-background-color: #1e293b;
-            --text-color: #e2e8f0;
-        }
-        .stApp {
-            background-color: var(--background-color);
-            color: var(--text-color);
-        }
-        </style>
-        """
+        # Native Streamlit Dark (from config.toml)
+        # We don't need extra CSS here to avoid "black screen" bugs
+        pass
+
     elif theme_mode == "Light":
+        # Force Light Theme
         css = """
         <style>
-        :root {
-            --primary-color: #0284c7;
-            --background-color: #ffffff;
-            --secondary-background-color: #f1f5f9;
-            --text-color: #0f172a;
-        }
         .stApp {
-            background-color: var(--background-color);
-            color: var(--text-color);
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+        }
+        /* Sidebar */
+        [data-testid="stSidebar"] {
+            background-color: #f1f5f9 !important;
+        }
+        /* Text overrides */
+        p, h1, h2, h3, h4, h5, h6, label, span {
+            color: #0f172a !important;
+        }
+        /* Input fields */
+        input {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
         }
         </style>
         """
+
     elif theme_mode == "Nightsight (Red)":
-        # Global Red Filter
+        # Nightsight Mode
         css = """
         <style>
-        html, body, .stApp {
+        .stApp, [data-testid="stSidebar"] {
             background-color: #000000 !important;
             color: #ff0000 !important;
         }
-        /* Filter everything to red */
         .stApp {
-             filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) contrast(1.2) brightness(0.8);
+             filter: grayscale(100%) sepia(100%) hue-rotate(-50deg) saturate(600%) brightness(0.8);
         }
-        /* Fix images/charts if needed, but the filter should handle it */
+        * {
+            color: #ff0000 !important;
+        }
         </style>
         """
     
-    st.markdown(css, unsafe_allow_html=True)
+    if css:
+        st.markdown(css, unsafe_allow_html=True)
 
 def render_sidebar():
     st.sidebar.header("Configuration")

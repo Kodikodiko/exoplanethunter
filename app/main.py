@@ -1,9 +1,15 @@
+import sys
+import os
+
+# Add project root to path to ensure absolute imports work on Streamlit Cloud
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 import pandas as pd
 import app.warnings_config # Import this first to silence warnings
 from datetime import datetime, timedelta, time
 from app.ui_components import apply_theme, render_sidebar
-from app.database import SessionLocal, engine, Base
+from app.database import SessionLocal, engine, Base, get_session_factory
 from app.models import Planet, Star
 from app.broker import update_database
 from app.logic import get_observer, calculate_transits_in_window, calculate_sky_gradient, calculate_moon_alt
@@ -14,13 +20,20 @@ import numpy as np
 import astropy.units as u
 
 # Init DB Tables if not exist
-Base.metadata.create_all(bind=engine)
+# Note: For SQLite, this might need to run on the specific engine if we switch dynamically,
+# but our export script already creates tables.
+# Base.metadata.create_all(bind=engine) 
 
 st.set_page_config(page_title="ExoHunter Pro", layout="wide", page_icon="🔭")
 
 # Sidebar & Config
 config = render_sidebar()
 apply_theme(config['theme'])
+
+st.sidebar.divider()
+# Data Source Toggle
+data_source = st.sidebar.radio("Data Source", ["PostgreSQL", "SQLite"])
+Session = get_session_factory(data_source)
 
 st.sidebar.divider()
 nina_ip = st.sidebar.text_input("N.I.N.A IP Address", value="192.168.1.50")
@@ -32,8 +45,11 @@ st.caption("Advanced Exoplanet Transit Planner")
 
 # Database Status / Update
 if st.sidebar.button("Update Database (NASA/ExoClock)"):
+    if data_source == "SQLite":
+        st.sidebar.warning("Updating the static SQLite file will only persist for this session on cloud deployments.")
+    
     with st.spinner("Fetching data from NASA Exoplanet Archive & ExoClock... This may take a minute."):
-        update_database()
+        update_database(Session)
     st.sidebar.success("Database updated successfully!")
 
 # Search Filters
@@ -54,7 +70,7 @@ with st.expander("Search Parameters", expanded=True):
 
 # Logic
 if st.button("Find Transits"):
-    db = SessionLocal()
+    db = Session()
     
     # 1. Static Filter (SQL)
     query = db.query(Planet, Star).join(Star).filter(

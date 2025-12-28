@@ -42,9 +42,17 @@ def fetch_exoclock_priorities():
         logger.error(f"Failed to fetch ExoClock data: {e}")
         return {}
 
-def update_database():
-    """Fetches data from NASA and updates the local DB."""
-    db = SessionLocal()
+def update_database(session_factory=None):
+    """Fetches data from NASA and updates the local DB.
+    
+    Args:
+        session_factory: Optional sessionmaker. Defaults to Postgres SessionLocal.
+    """
+    if session_factory:
+        db = session_factory()
+    else:
+        db = SessionLocal()
+
     try:
         logger.info("Fetching data from NASA Exoplanet Archive...")
         # Query pscomppars for transiting planets

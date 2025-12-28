@@ -30,7 +30,7 @@ REM Add current directory to PYTHONPATH so 'app' module can be found
 set PYTHONPATH=%~dp0
 
 echo [INFO] Starting ExoHunter Pro...
-streamlit run streamlit_app.py
+streamlit run app/main.py
 
 ENDLOCAL
 pause

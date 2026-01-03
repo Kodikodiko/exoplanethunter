@@ -74,46 +74,63 @@ def run():
         db = Session()
         
         # 1. Static Filter (SQL)
-        query = db.query(Planet, Star).join(Star).filter(
-            Star.mag_v <= max_mag,
-            Planet.depth_mmag >= min_depth
-        )
-        
-        if priorities:
-            query = query.filter(Planet.priority.in_(priorities))
+        try:
+            query = db.query(Planet, Star).join(Star).filter(
+                Star.mag_v <= max_mag,
+                Planet.depth_mmag >= min_depth
+            )
             
-        candidates = query.all()
-        db.close()
-        
-        st.write(f"Analyzing {len(candidates)} candidates matching static criteria...")
-        
-        # 2. Dynamic Calculation
-        start_dt = datetime.combine(search_date, start_hour)
-        end_dt = start_dt + timedelta(hours=end_date_offset)
-        
-        from astropy.time import Time
-        t_start = Time(start_dt)
-        t_end = Time(end_dt)
-        
-        observer = get_observer(config['lat'], config['lon'], config['elevation'])
-        
-        progress_bar = st.progress(0)
-        
-        valid_transits = []
-        
-        for i, (planet, star) in enumerate(candidates):
-            if i % max(1, len(candidates)//10) == 0:
-                progress_bar.progress(i / len(candidates))
+            if priorities:
+                query = query.filter(Planet.priority.in_(priorities))
                 
-            planet_data = planet
-            planet_data.ra = star.ra
-            planet_data.dec = star.dec
-            planet_data.mag_v = star.mag_v
+            candidates = query.all()
+            db.close()
             
-            transits = calculate_transits_in_window(planet_data, t_start, t_end, observer, min_alt=min_alt)
-            valid_transits.extend(transits)
+            st.write(f"Analyzing {len(candidates)} candidates matching static criteria...")
             
-        progress_bar.progress(100)
+            # 2. Dynamic Calculation
+            start_dt = datetime.combine(search_date, start_hour)
+            end_dt = start_dt + timedelta(hours=end_date_offset)
+            
+            from astropy.time import Time
+            t_start = Time(start_dt)
+            t_end = Time(end_dt)
+            
+            observer = get_observer(config['lat'], config['lon'], config['elevation'])
+            
+            progress_bar = st.progress(0)
+            
+            valid_transits = []
+            
+            for i, (planet, star) in enumerate(candidates):
+                if i % max(1, len(candidates)//10) == 0:
+                    progress_bar.progress(i / len(candidates))
+                    
+                planet_data = planet
+                planet_data.ra = star.ra
+                planet_data.dec = star.dec
+                planet_data.mag_v = star.mag_v
+                
+                transits = calculate_transits_in_window(planet_data, t_start, t_end, observer, min_alt=min_alt)
+                valid_transits.extend(transits)
+                
+            progress_bar.progress(100)
+        
+        except Exception as e:
+            db.close()
+            st.error(f"Database Error: {e}")
+            st.warning("The database schema might be outdated or corrupt (e.g., missing new columns).")
+            if st.button("⚠️ Reset & Rebuild Database Schema"):
+                from sqlalchemy import text
+                # Try to drop/create on the current engine
+                current_engine = db.get_bind()
+                Base.metadata.drop_all(bind=current_engine)
+                Base.metadata.create_all(bind=current_engine)
+                st.success("Database schema rebuilt. Please click 'Update Database' in the sidebar to populate data.")
+                st.rerun()
+            st.stop() # Stop execution here
+        
+        # Sort by mid_time ascending (soonest first)
         
         # Sort by mid_time ascending (soonest first)
         valid_transits.sort(key=lambda x: x['mid_time'])

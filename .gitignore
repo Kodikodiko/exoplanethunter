@@ -13,3 +13,6 @@ venv/
 app_backup_*/
 *_backup/
 docker-compose.yml
+GEMINI.md
+exohunter_results_20260103_1702.csv
+exo.txt

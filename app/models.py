@@ -31,6 +31,13 @@ class Planet(Base):
                           # We will store `depth_mmag`.
     depth_mmag = Column(Float) 
     
+    # Uncertainty Data (Errors in Days)
+    period_err = Column(Float, nullable=True)
+    t0_err = Column(Float, nullable=True)
+    
+    # Equipment suitability
+    min_telescope_in = Column(Float, nullable=True) # Inches
+    
     # Exoclock / Priorities
     priority = Column(String, default="Normal") # High, Low, etc.
     

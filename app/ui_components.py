@@ -66,6 +66,10 @@ def render_sidebar():
     lon = st.sidebar.number_input("Longitude", value=15.7566, step=0.1, format="%.4f")
     elevation = st.sidebar.number_input("Elevation (m)", value=640, step=10)
     
+    # Equipment
+    st.sidebar.subheader("Equipment")
+    aperture = st.sidebar.slider("Telescope Aperture (inches)", min_value=2, max_value=24, value=8, step=1)
+    
     st.sidebar.divider()
     
     # Theme
@@ -76,5 +80,6 @@ def render_sidebar():
         "lat": lat,
         "lon": lon,
         "elevation": elevation,
+        "aperture": aperture,
         "theme": theme
     }

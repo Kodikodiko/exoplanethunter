@@ -41,7 +41,9 @@ def calculate_transits_in_window(planet_data, start_time, end_time, observer, mi
     
     for n in range(int(n_start), int(n_end) + 1):
         mid_jd = t0 + n * period
-        mid_time = Time(mid_jd, format='jd')
+        # t0 is BJD_TDB, so mid_jd is in TDB scale.
+        # We specify scale='tdb' so astropy handles conversion to UTC (for display/calc) correctly.
+        mid_time = Time(mid_jd, format='jd', scale='tdb')
         
         # Check basic visibility at mid-transit
         # Sun constraint
@@ -93,6 +95,15 @@ def calculate_transits_in_window(planet_data, start_time, end_time, observer, mi
             except ImportError:
                  moon_ill = 0 # Fallback
             
+            # Error Propagation
+            # sigma_T = sqrt(sigma_t0^2 + (N * sigma_P)^2)
+            t0_err = getattr(planet_data, 't0_err', 0.0) or 0.0
+            period_err = getattr(planet_data, 'period_err', 0.0) or 0.0
+            min_scope = getattr(planet_data, 'min_telescope_in', 0.0) or 0.0
+            
+            error_days = np.sqrt(t0_err**2 + (n * period_err)**2)
+            error_min = error_days * 24 * 60
+            
             transits.append({
                 "planet_name": planet_data.name,
                 "mid_time": mid_time,
@@ -108,7 +119,9 @@ def calculate_transits_in_window(planet_data, start_time, end_time, observer, mi
                 "ra": planet_data.ra,
                 "dec": planet_data.dec,
                 "mag_v": planet_data.mag_v,
-                "priority": planet_data.priority
+                "priority": planet_data.priority,
+                "uncertainty_min": error_min,
+                "min_telescope_in": min_scope
             })
             
     return transits

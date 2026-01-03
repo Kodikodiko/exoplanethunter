@@ -115,16 +115,32 @@ def run():
             
         progress_bar.progress(100)
         
+        # Sort by mid_time ascending (soonest first)
+        valid_transits.sort(key=lambda x: x['mid_time'])
+        
+        # Filter by Aperture
+        initial_count = len(valid_transits)
+        valid_transits = [t for t in valid_transits if t.get('min_telescope_in', 0) <= config['aperture']]
+        hidden_count = initial_count - len(valid_transits)
+        
         # Store results in session state
         st.session_state['transits_data'] = valid_transits
         st.session_state['search_performed'] = True
+        st.session_state['hidden_count'] = hidden_count
 
     if st.session_state.get('search_performed', False):
         valid_transits = st.session_state.get('transits_data', [])
+        hidden_count = st.session_state.get('hidden_count', 0)
 
         if not valid_transits:
-            st.warning("No transits found matching criteria.")
+            if hidden_count > 0:
+                st.warning(f"No transits found for your aperture ({hidden_count} hidden). Try increasing aperture in sidebar.")
+            else:
+                st.warning("No transits found matching criteria.")
         else:
+            if hidden_count > 0:
+                st.caption(f"ℹ️ Hidden {hidden_count} candidates requiring aperture > {config['aperture']}\"")
+                
             st.success(f"Found {len(valid_transits)} observable transits.")
             # Display Results
             df = pd.DataFrame(valid_transits)
@@ -135,15 +151,25 @@ def run():
             # Create display copy with proper formatting
             df_display = df.copy()
             if not df_display.empty:
-                # Format: dd.mm.yyyy HH:MM
-                df_display['mid_time'] = df_display['mid_time'].apply(
-                    lambda x: x.to_datetime().strftime('%d.%m.%Y %H:%M') if hasattr(x, 'to_datetime') else str(x)
+                # Format Uncertainty
+                df_display['uncertainty'] = df_display['uncertainty_min'].apply(
+                    lambda x: f"± {x:.0f} min" if x > 0 else "--"
                 )
+                
+                # Format: dd.mm.yyyy HH:MM
+                # Add warning icon if uncertainty is high
+                def format_time_with_warning(row):
+                    t_str = row['mid_time'].to_datetime().strftime('%d.%m.%Y %H:%M') if hasattr(row['mid_time'], 'to_datetime') else str(row['mid_time'])
+                    if row.get('uncertainty_min', 0) > 30:
+                        return f"⚠️ {t_str}"
+                    return t_str
+                
+                df_display['mid_time'] = df_display.apply(format_time_with_warning, axis=1)
 
             # --- Layout Change: Table + Detail View ---
             
             # Define Columns to display
-            display_cols = ["planet_name", "mid_time", "altitude", "depth", "duration", "mag_v", "priority", "moon_ill"]
+            display_cols = ["planet_name", "mid_time", "uncertainty", "altitude", "depth", "duration", "mag_v", "priority", "moon_ill"]
             
             col_list, col_detail = st.columns([1.5, 2.5]) # Left: Table, Right: Graph
             
@@ -190,6 +216,8 @@ def run():
                     st.markdown(f"### {row['planet_name']}")
                     
                     formatted_time = row['mid_time'].to_datetime().strftime('%d.%m.%Y %H:%M')
+                    unc_min = row.get('uncertainty_min', 0)
+                    unc_str = f"(± {unc_min:.0f} min)" if unc_min > 0 else ""
                     
                     # --- Plotly Logic (Reused) ---
                     dur_days = row['duration'] / 24.0
@@ -262,9 +290,9 @@ def run():
                     ))
                     
                     # Title with Info
-                    plot_title = f"Transit Lightcurve & Sky Conditions<br><sup style='color: gray'>Time: {formatted_time} | Mag: {row['mag_v']:.1f} | Depth: {row['depth']:.1f} mmag</sup>"
+                    plot_title = f"Transit Lightcurve {unc_str}<br><sup style='color: gray'>Time: {formatted_time} | Mag: {row['mag_v']:.1f} | Depth: {row['depth']:.1f} mmag</sup>"
                     if config['theme'] == "Nightsight (Red)":
-                         plot_title = f"Transit Lightcurve & Sky Conditions<br><sup style='color: red'>Time: {formatted_time} | Mag: {row['mag_v']:.1f} | Depth: {row['depth']:.1f} mmag</sup>"
+                         plot_title = f"Transit Lightcurve {unc_str}<br><sup style='color: red'>Time: {formatted_time} | Mag: {row['mag_v']:.1f} | Depth: {row['depth']:.1f} mmag</sup>"
 
                     fig.update_layout(
                         title=dict(text=plot_title),

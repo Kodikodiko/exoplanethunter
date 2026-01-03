@@ -1,0 +1,28 @@
+# Change Log - 2026-01-03
+
+## [1.1.0] - Transit Accuracy & Equipment Suitability
+
+### Added
+- **ExoClock Integration (Primary Source):** The application now fetches the full dataset from ExoClock (`planets_json`). This provides the most up-to-date ephemerides (T0 and Period) specifically for ARIEL targets, resolving discrepancies with external planning tools.
+- **Transit Timing Uncertainty:** 
+    - Added `period_err` and `t0_err` fields to the Planet model.
+    - Implemented mathematical error propagation in `app/logic.py` to calculate predicted timing uncertainty (± minutes) for any future date.
+    - Added visual warnings (⚠️) in the UI for transits with high uncertainty (>30 minutes).
+- **Equipment Suitability Check:**
+    - Integrated ExoClock's `min_telescope_inches` parameter.
+    - Added a "Telescope Aperture" slider in the sidebar.
+    - Implemented logic to automatically filter out or flag targets that are too faint/shallow for the user's specific telescope aperture.
+- **Database Diagnostic Tools:** Created internal scripts for safe schema resets and data population verification.
+
+### Changed
+- **Time Scale Precision:** Updated transit calculation logic to strictly treat ephemeris data as **BJD_TDB**. The app now correctly handles the conversion to UTC, ensuring minute-level precision for observers.
+- **Data Ingestion Logic:** Refactored `app/broker.py` to use a "Priority Merge" strategy:
+    1. Process ExoClock data first (High Fidelity).
+    2. Fallback to NASA Exoplanet Archive only for planets not tracked by ExoClock.
+- **UI Layout:**
+    - Added "Uncertainty" column to the transit results table.
+    - Enhanced Plotly detail view titles to display predicted error margins.
+
+### Fixed
+- **Database Crash:** Fixed a critical bug where NumPy data types (`np.float64`) were passed to the SQL driver, causing `InvalidSchemaName: schema "np" does not exist` errors. All numeric values are now explicitly cast to native Python floats before insertion.
+- **Coordinate Parsing:** Fixed an issue where sexagesimal coordinate strings from ExoClock weren't being correctly converted to decimal degrees.
